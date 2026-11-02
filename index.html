@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>딩동마켓 프로토타입</title>
+    <style>
+        /* ── 전체 기본 설정 ── */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif; }
+        body { background-color: #f3f4f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .phone-container { width: 100%; max-width: 420px; height: 90vh; min-height: 650px; background-color: white; display: flex; flex-direction: column; position: relative; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 12px; }
+        .hidden { display: none !important; }
+        
+        /* ── 상단 헤더 ── */
+        header { height: 56px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background-color: white; flex-shrink: 0; }
+        .town-select { display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 18px; cursor: pointer; user-select: none; }
+        .header-icons { display: flex; gap: 16px; font-size: 20px; }
+        
+        /* ── 메인 & 뷰 패널 ── */
+        main { flex: 1; overflow-y: auto; background-color: white; position: relative; }
+        .view-panel { width: 100%; height: 100%; }
+        
+        /* ── 홈: 상품 목록 ── */
+        .product-item { padding: 16px; display: flex; gap: 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+        .product-item:hover { background-color: #f9fafb; }
+        .product-img { width: 96px; height: 96px; background-color: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 40px; user-select: none; overflow: hidden; }
+        .product-img img { width: 100%; height: 100%; object-fit: cover; }
+        .product-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 0; }
+        .product-title { font-size: 15px; font-weight: 500; color: #111827; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .product-meta { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+        .product-price { font-size: 16px; font-weight: bold; color: #111827; }
+
+        /* ── 상세 페이지 ── */
+        .back-btn-header { height: 56px; display: flex; align-items: center; padding: 0 16px; font-size: 20px; cursor: pointer; position: absolute; top: 0; left: 0; right: 0; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.5); z-index: 10; }
+        .detail-img-box { width: 100%; height: 300px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 80px; overflow: hidden; }
+        .detail-img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .detail-profile { padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 12px; }
+        .profile-img { width: 40px; height: 40px; border-radius: 50%; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #9ca3af; }
+        .detail-info { padding: 20px 16px; padding-bottom: 80px; }
+        .detail-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; color: #111827; }
+        .detail-meta { font-size: 12px; color: #9ca3af; margin-bottom: 16px; }
+        .detail-desc { font-size: 15px; color: #374151; line-height: 1.6; white-space: pre-wrap; }
+        .bottom-bar { padding: 16px; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; background: white; position: absolute; bottom: 0; left: 0; right: 0; z-index: 10; }
+        
+        /* ── 공통 버튼 ── */
+        .orange-btn { background-color: #ff7e36; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+        .orange-btn:hover { background-color: #ea580c; }
+        
+        /* ── 하단 네비게이션 ── */
+        nav { height: 64px; border-top: 1px solid #e5e7eb; background-color: white; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; z-index: 40; position: relative; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 11px; gap: 4px; width: 100%; height: 100%; justify-content: center; }
+        .nav-item.active { color: #ff7e36; }
+        .nav-icon { font-size: 20px; }
+        
+        /* ── 모달 ── */
+        .modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: flex-end; }
+        .modal-content { background-color: white; width: 100%; border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 20px; max-height: 90%; overflow-y: auto; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px; }
+        .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; padding: 4px; }
+        
+        /* ── 폼 입력 ── */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: bold; color: #4b5563; margin-bottom: 8px; }
+        .form-input { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; font-size: 15px; outline: none; }
+        .form-input:focus { border-color: #ff7e36; }
+        .form-textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 12px; font-size: 15px; outline: none; resize: none; height: 120px; }
+        .form-textarea:focus { border-color: #ff7e36; }
+        
+        /* ── 이미지 첨부 ── */
+        .image-upload-box { width: 80px; height: 80px; border: 1px solid #d1d5db; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; color: #9ca3af; font-size: 12px; gap: 4px; overflow: hidden; position: relative; }
+        .image-upload-box input[type="file"] { position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .image-preview-container { display: flex; gap: 12px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+        #preview-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; top: 0; left: 0; }
+
+        /* ── 동네 설정 ── */
+        .town-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .town-btn { padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; font-weight: 600; font-size: 14px; cursor: pointer; }
+        .town-btn.active { background-color: #fff7ed; border-color: #ff7e36; color: #ff7e36; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <!-- 상단 헤더 -->
+        <header id="main-header">
+            <div class="town-select" onclick="openTownModal()">
+                <span id="current-town-text">마북동</span>
+                <span style="font-size: 10px; margin-left: 2px;">▼</span>
+            </div>
+            <div class="header-icons">
+                <span>🔍</span>
+                <span>🔔</span>
+            </div>
+        </header>
+
+        <main id="main-content">
+            <!-- 1. 홈 뷰 -->
+            <div id="view-home" class="view-panel">
+                <div id="product-list">
+                    <!-- 자바스크립트로 리스트 렌더링 됨 -->
+                </div>
+            </div>
+
+            <!-- 2. 상세 뷰 -->
+            <div id="view-detail" class="view-panel hidden">
+                <!-- 상단 뒤로가기 버튼 -->
+                <div class="back-btn-header" onclick="changeView('home')">
+                    ◀ 
+                </div>
+                <!-- 상품 이미지 -->
+                <div class="detail-img-box" id="detail-image-box">
+                    <span id="detail-emoji"></span>
+                    <img id="detail-image" src="" style="display:none;" />
+                </div>
+                <!-- 프로필 -->
+                <div class="detail-profile">
+                    <div class="profile-img">당근</div>
+                    <div>
+                        <div style="font-weight: bold; font-size: 15px; color: #111827;">당근유저</div>
+                        <div style="font-size: 12px; color: #9ca3af;">매너온도 36.5°C</div>
+                    </div>
+                </div>
+                <!-- 상세 내용 -->
+                <div class="detail-info">
+                    <div id="detail-title" class="detail-title">제목</div>
+                    <div id="detail-meta" class="detail-meta">동네 · 시간</div>
+                    <div id="detail-desc" class="detail-desc">내용</div>
+                </div>
+                <!-- 하단 바 (가격 및 채팅 버튼) -->
+                <div class="bottom-bar">
+                    <div>
+                        <div style="font-size: 12px; color: #9ca3af;">가격</div>
+                        <div id="detail-price" style="font-weight: bold; font-size: 18px; color: #111827;">0원</div>
+                    </div>
+                    <button class="orange-btn">채팅하기</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- 하단 네비게이션 -->
+        <nav id="main-nav">
+            <button onclick="changeView('home')" id="nav-home" class="nav-item active">
+                <span class="nav-icon">🏠</span>
+                <span>홈</span>
+            </button>
+            <button onclick="openWriteModal()" id="nav-write" class="nav-item">
+                <span class="nav-icon">➕</span>
+                <span>글쓰기</span>
+            </button>
+            <button class="nav-item">
+                <span class="nav-icon">💬</span>
+                <span>채팅</span>
+            </button>
+        </nav>
+
+        <!-- 동네 설정 모달 -->
+        <div id="modal-town" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="font-weight: bold; font-size: 18px;">내 동네 설정</h3>
+                    <button onclick="closeTownModal()" class="modal-close">✕</button>
+                </div>
+                <div class="town-grid">
+                    <button id="btn-town-마북동" onclick="setTown('마북동')" class="town-btn active">마북동 (현재)</button>
+                    <button id="btn-town-역삼동" onclick="setTown('역삼동')" class="town-btn">역삼동</button>
+                    <button id="btn-town-정자동" onclick="setTown('정자동')" class="town-btn">정자동</button>
+                    <button id="btn-town-한남동" onclick="setTown('한남동')" class="town-btn">한남동</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 글쓰기 모달 (이미지 및 상세설명 추가됨) -->
+        <div id="modal-write" class="modal-overlay">
+            <div class="modal-content" style="height: 100%;">
+                <div class="modal-header">
+                    <h3 style="font-weight: bold; font-size: 18px;">내 물건 팔기</h3>
+                    <button onclick="closeWriteModal()" class="modal-close">✕</button>
+                </div>
+                
+                <div style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                    <!-- 이미지 업로드 -->
+                    <div class="image-preview-container">
+                        <div class="image-upload-box">
+                            <span style="font-size: 24px;">📷</span>
+                            <span>0/10</span>
+                            <input type="file" id="input-image" accept="image/*" onchange="previewImage(event)">
+                            <img id="preview-img" src="" alt="미리보기">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>글 제목</label>
+                        <input id="input-title" type="text" class="form-input" placeholder="제목을 입력해 주세요">
+                    </div>
+                    <div class="form-group">
+                        <label>가격 (선택사항)</label>
+                        <input id="input-price" type="number" class="form-input" placeholder="가격을 입력해 주세요 (원)">
+                    </div>
+                    <div class="form-group">
+                        <label>자세한 설명</label>
+                        <textarea id="input-desc" class="form-textarea" placeholder="상품에 대한 자세한 설명을 작성해 주세요. (구매 연도, 하자 유무 등)"></textarea>
+                    </div>
+                </div>
+
+                <button class="orange-btn" style="width: 100%; margin-top: 16px; padding: 14px;" onclick="registerProduct()">등록하기</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- 전역 상품 데이터 베이스 (배열) ---
+        let currentUploadedImageURL = ''; // 업로드된 이미지 임시 주소
+
+        let products = [
+            { id: 2, title: '맥북 프로 M1 16인치', town: '역삼동', time: '5시간 전', price: 1200000, imgUrl: '', emoji: '💻', desc: '배터리 효율 98% 맥북 프로 팝니다.\n풀박스 그대로 보관 중입니다. 쿨거래 원해요!' },
+            { id: 1, title: '아이폰 13 프로 팝니다 (상태 최상)', town: '마북동', time: '2시간 전', price: 850000, imgUrl: '', emoji: '📱', desc: '아이폰 13 프로 화이트 색상 판매합니다.\n기스 하나 없이 깨끗하게 썼습니다.\n연락주세요~' }
+        ];
+
+        // 초기 상품 렌더링
+        renderProducts();
+
+        // 1. 화면 전환 및 디스플레이 제어
+        function changeView(viewName) {
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-detail').classList.add('hidden');
+            
+            // 상세 페이지에서는 메인 헤더와 하단 네비게이션을 숨김
+            if (viewName === 'detail') {
+                document.getElementById('main-header').style.display = 'none';
+                document.getElementById('main-nav').style.display = 'none';
+            } else {
+                document.getElementById('main-header').style.display = 'flex';
+                document.getElementById('main-nav').style.display = 'flex';
+            }
+
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+        }
+
+        // 2. 홈 화면 렌더링
+        function renderProducts() {
+            const listContainer = document.getElementById('product-list');
+            listContainer.innerHTML = '';
+
+            products.forEach(p => {
+                const priceStr = p.price > 0 ? p.price.toLocaleString() + '원' : '가격 제안';
+                
+                // 이미지가 있으면 이미지 태그, 없으면 이모지
+                const imgContent = p.imgUrl 
+                    ? `<img src="${p.imgUrl}">` 
+                    : p.emoji;
+
+                const itemHTML = `
+                    <div class="product-item" onclick="openDetail(${p.id})">
+                        <div class="product-img">${imgContent}</div>
+                        <div class="product-info">
+                            <div class="product-title">${p.title}</div>
+                            <div class="product-meta">${p.town} · ${p.time}</div>
+                            <div class="product-price">${priceStr}</div>
+                        </div>
+                    </div>
+                `;
+                listContainer.insertAdjacentHTML('beforeend', itemHTML);
+            });
+        }
+
+        // 3. 상세 페이지 열기
+        function openDetail(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            document.getElementById('detail-title').innerText = product.title;
+            document.getElementById('detail-meta').innerText = `${product.town} · ${product.time}`;
+            document.getElementById('detail-desc').innerText = product.desc;
+            document.getElementById('detail-price').innerText = product.price > 0 ? product.price.toLocaleString() + '원' : '가격 제안';
+
+            const imageBox = document.getElementById('detail-image');
+            const emojiBox = document.getElementById('detail-emoji');
+
+            if (product.imgUrl) {
+                imageBox.src = product.imgUrl;
+                imageBox.style.display = 'block';
+                emojiBox.style.display = 'none';
+            } else {
+                imageBox.style.display = 'none';
+                emojiBox.style.display = 'block';
+                emojiBox.innerText = product.emoji;
+            }
+
+            changeView('detail');
+        }
+
+        // 4. 모달 조작
+        function openWriteModal() { document.getElementById('modal-write').style.display = 'flex'; }
+        function closeWriteModal() { document.getElementById('modal-write').style.display = 'none'; }
+        function openTownModal() { document.getElementById('modal-town').style.display = 'flex'; }
+        function closeTownModal() { document.getElementById('modal-town').style.display = 'none'; }
+
+        // 5. 이미지 미리보기 (브라우저 임시 URL 생성)
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                currentUploadedImageURL = URL.createObjectURL(file);
+                const previewImg = document.getElementById('preview-img');
+                previewImg.src = currentUploadedImageURL;
+                previewImg.style.display = 'block';
+            }
+        }
+
+        // 6. 상품 등록 처리
+        function registerProduct() {
+            const titleInput = document.getElementById('input-title');
+            const priceInput = document.getElementById('input-price');
+            const descInput = document.getElementById('input-desc');
+            
+            const title = titleInput.value.trim();
+            const price = Number(priceInput.value.trim()) || 0;
+            const desc = descInput.value.trim();
+
+            if (title === '') {
+                alert('글 제목을 입력해 주세요!');
+                return;
+            }
+
+            const currentTown = document.getElementById('current-town-text').innerText;
+            const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
+
+            // 새 상품 객체 생성 후 배열 맨 앞에 추가
+            const newProduct = {
+                id: newId,
+                title: title,
+                town: currentTown,
+                time: '방금 전',
+                price: price,
+                imgUrl: currentUploadedImageURL,
+                emoji: '🎁', // 이미지가 없을 때 뜰 기본 이모지
+                desc: desc || '내용 없음'
+            };
+            
+            products.unshift(newProduct);
+
+            // 화면 다시 그리기
+            renderProducts();
+
+            // 폼 초기화
+            titleInput.value = '';
+            priceInput.value = '';
+            descInput.value = '';
+            currentUploadedImageURL = '';
+            
+            const previewImg = document.getElementById('preview-img');
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+            document.getElementById('input-image').value = '';
+
+            // 모달 닫기
+            closeWriteModal();
+        }
+
+        // 7. 동네 변경
+        function setTown(townName) {
+            document.getElementById('current-town-text').innerText = townName;
+            const buttons = document.querySelectorAll('.town-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-town-' + townName).classList.add('active');
+            closeTownModal();
+        }
+    </script>
+</body>
+</html>
